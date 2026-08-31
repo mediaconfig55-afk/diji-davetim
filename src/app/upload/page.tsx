@@ -105,7 +105,6 @@ export default function UploadPage() {
             ref={inputRef}
             type="file"
             accept="image/*"
-            capture="environment"
             multiple
             onChange={handleSelect}
             className="hidden"

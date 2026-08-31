@@ -1,0 +1,222 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import QRCode from "qrcode";
+import { Download, LogOut, RefreshCw, ToggleLeft, ToggleRight } from "lucide-react";
+import { eventConfig } from "@/lib/config";
+import type { RsvpRecord, GuestbookRecord } from "@/lib/types";
+import FloatingBackground from "@/components/FloatingBackground";
+
+interface DashboardData {
+  rsvps: RsvpRecord[];
+  guestbook: GuestbookRecord[];
+  manualRevealOverride: boolean;
+  revealed: boolean;
+  photoCount: number;
+}
+
+const statusLabels: Record<string, string> = {
+  attending: "Katılıyor",
+  not_attending: "Katılmıyor",
+  undecided: "Belirsiz",
+};
+
+export default function AdminDashboardPage() {
+  const router = useRouter();
+  const [data, setData] = useState<DashboardData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [toggling, setToggling] = useState(false);
+  const [qrCodes, setQrCodes] = useState<{ invite: string; upload: string } | null>(null);
+
+  async function loadData() {
+    setLoading(true);
+    const res = await fetch("/api/admin/data");
+    if (res.ok) setData(await res.json());
+    setLoading(false);
+  }
+
+  useEffect(() => {
+    loadData();
+    const base = eventConfig.siteUrl.replace(/\/$/, "");
+    Promise.all([
+      QRCode.toDataURL(base, { width: 480, margin: 1 }),
+      QRCode.toDataURL(`${base}/upload`, { width: 480, margin: 1 }),
+    ]).then(([invite, upload]) => setQrCodes({ invite, upload }));
+  }, []);
+
+  async function handleToggleReveal() {
+    if (!data) return;
+    setToggling(true);
+    const next = !data.manualRevealOverride;
+    const res = await fetch("/api/admin/settings", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ manualRevealOverride: next }),
+    });
+    setToggling(false);
+    if (res.ok) loadData();
+  }
+
+  async function handleLogout() {
+    await fetch("/api/admin/logout", { method: "POST" });
+    router.push("/admin");
+  }
+
+  const rsvpCounts = data?.rsvps.reduce(
+    (acc, r) => {
+      acc[r.status] = (acc[r.status] ?? 0) + 1;
+      acc.totalGuests += r.status === "attending" ? r.guest_count : 0;
+      return acc;
+    },
+    { attending: 0, not_attending: 0, undecided: 0, totalGuests: 0 } as Record<string, number>
+  );
+
+  return (
+    <div className="relative min-h-screen px-6 py-12">
+      <FloatingBackground />
+
+      <div className="mx-auto max-w-4xl">
+        <div className="mb-8 flex flex-wrap items-center justify-between gap-3">
+          <h1 className="font-display gold-text text-2xl sm:text-3xl">Yönetim Paneli</h1>
+          <div className="flex gap-2">
+            <button
+              onClick={loadData}
+              className="flex items-center gap-2 rounded-xl border border-white/15 px-3 py-2 text-xs text-[color:var(--color-text)]/70 hover:border-[color:var(--color-primary)]/50"
+            >
+              <RefreshCw size={13} /> Yenile
+            </button>
+            <button
+              onClick={handleLogout}
+              className="flex items-center gap-2 rounded-xl border border-white/15 px-3 py-2 text-xs text-[color:var(--color-text)]/70 hover:border-red-400/50"
+            >
+              <LogOut size={13} /> Çıkış
+            </button>
+          </div>
+        </div>
+
+        {loading && <p className="text-sm text-[color:var(--color-text)]/50">Yükleniyor…</p>}
+
+        {!loading && data && (
+          <div className="space-y-8">
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
+              {[
+                { label: "Katılıyor", value: rsvpCounts?.attending ?? 0 },
+                { label: "Katılmıyor", value: rsvpCounts?.not_attending ?? 0 },
+                { label: "Belirsiz", value: rsvpCounts?.undecided ?? 0 },
+                { label: "Toplam Kişi", value: rsvpCounts?.totalGuests ?? 0 },
+                { label: "Fotoğraf", value: data.photoCount },
+              ].map((s) => (
+                <div key={s.label} className="glass-card rounded-2xl px-3 py-4 text-center">
+                  <p className="font-display gold-text text-2xl">{s.value}</p>
+                  <p className="mt-1 text-[10px] uppercase tracking-wide text-[color:var(--color-text)]/50">
+                    {s.label}
+                  </p>
+                </div>
+              ))}
+            </div>
+
+            <div className="glass-card flex flex-wrap items-center justify-between gap-4 rounded-2xl px-6 py-5">
+              <div>
+                <p className="text-sm text-[color:var(--color-text)]">Fotoğraf Havuzu</p>
+                <p className="mt-1 text-xs text-[color:var(--color-text)]/50">
+                  Durum: {data.revealed ? "Herkese açık" : "Kapalı (otomatik saat: " + new Date(eventConfig.weddingEndAt).toLocaleString("tr-TR") + ")"}
+                </p>
+              </div>
+              <button
+                onClick={handleToggleReveal}
+                disabled={toggling}
+                className="flex items-center gap-2 rounded-xl border border-[color:var(--color-primary)]/40 px-4 py-2 text-sm text-[color:var(--color-primary)] transition hover:bg-[color:var(--color-primary)]/10 disabled:opacity-50"
+              >
+                {data.manualRevealOverride ? <ToggleRight size={18} /> : <ToggleLeft size={18} />}
+                {data.manualRevealOverride ? "Manuel açık" : "Manuel aç"}
+              </button>
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              {qrCodes && (
+                <>
+                  <QrDownloadCard title="Davetiye QR" dataUrl={qrCodes.invite} filename="davetiye-qr.png" />
+                  <QrDownloadCard title="Fotoğraf Yükleme QR" dataUrl={qrCodes.upload} filename="fotograf-qr.png" />
+                </>
+              )}
+            </div>
+
+            <section>
+              <h2 className="mb-3 font-display text-lg text-[color:var(--color-text)]">
+                Katılım Bildirimleri ({data.rsvps.length})
+              </h2>
+              <div className="glass-card overflow-x-auto rounded-2xl">
+                <table className="w-full text-left text-sm">
+                  <thead>
+                    <tr className="border-b border-white/10 text-[color:var(--color-text)]/50">
+                      <th className="px-4 py-3 font-normal">Ad Soyad</th>
+                      <th className="px-4 py-3 font-normal">Durum</th>
+                      <th className="px-4 py-3 font-normal">Kişi</th>
+                      <th className="px-4 py-3 font-normal">Not</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {data.rsvps.map((r) => (
+                      <tr key={r.id} className="border-b border-white/5 last:border-0">
+                        <td className="px-4 py-3">{r.full_name}</td>
+                        <td className="px-4 py-3">{statusLabels[r.status]}</td>
+                        <td className="px-4 py-3">{r.guest_count}</td>
+                        <td className="px-4 py-3 text-[color:var(--color-text)]/60">{r.note ?? "—"}</td>
+                      </tr>
+                    ))}
+                    {data.rsvps.length === 0 && (
+                      <tr>
+                        <td colSpan={4} className="px-4 py-6 text-center text-[color:var(--color-text)]/40">
+                          Henüz kayıt yok.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </section>
+
+            <section>
+              <h2 className="mb-3 font-display text-lg text-[color:var(--color-text)]">
+                Anı Defteri ({data.guestbook.length})
+              </h2>
+              <div className="grid gap-3 sm:grid-cols-2">
+                {data.guestbook.map((g) => (
+                  <div key={g.id} className="glass-card rounded-2xl px-5 py-4">
+                    <p className="text-sm text-[color:var(--color-text)]/80">“{g.message}”</p>
+                    <p className="mt-2 text-xs uppercase tracking-wide text-[color:var(--color-primary)]">
+                      {g.full_name}
+                    </p>
+                  </div>
+                ))}
+                {data.guestbook.length === 0 && (
+                  <p className="text-sm text-[color:var(--color-text)]/40">Henüz anı yok.</p>
+                )}
+              </div>
+            </section>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function QrDownloadCard({ title, dataUrl, filename }: { title: string; dataUrl: string; filename: string }) {
+  return (
+    <div className="glass-card flex items-center justify-between gap-4 rounded-2xl px-5 py-4">
+      <div className="flex items-center gap-3">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={dataUrl} alt={title} className="h-16 w-16 rounded-lg bg-white p-1" />
+        <p className="text-sm text-[color:var(--color-text)]">{title}</p>
+      </div>
+      <a
+        href={dataUrl}
+        download={filename}
+        className="flex items-center gap-2 rounded-lg border border-[color:var(--color-primary)]/40 px-3 py-2 text-xs text-[color:var(--color-primary)] hover:bg-[color:var(--color-primary)]/10"
+      >
+        <Download size={13} /> İndir
+      </a>
+    </div>
+  );
+}

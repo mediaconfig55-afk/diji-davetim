@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import QRCode from "qrcode";
 import { Download, LogOut, RefreshCw, ToggleLeft, ToggleRight } from "lucide-react";
 import { eventConfig } from "@/lib/config";
-import type { RsvpRecord, GuestbookRecord } from "@/lib/types";
+import type { RsvpRecord, GuestbookRecord, PhotoRecord } from "@/lib/types";
 import FloatingBackground from "@/components/FloatingBackground";
 
 interface DashboardData {
@@ -14,6 +14,7 @@ interface DashboardData {
   manualRevealOverride: boolean;
   revealed: boolean;
   photoCount: number;
+  photos: PhotoRecord[];
 }
 
 const statusLabels: Record<string, string> = {
@@ -118,9 +119,11 @@ export default function AdminDashboardPage() {
 
             <div className="glass-card flex flex-wrap items-center justify-between gap-4 rounded-2xl px-6 py-5">
               <div>
-                <p className="text-sm text-[color:var(--color-text)]">Fotoğraf Havuzu</p>
+                <p className="text-sm text-[color:var(--color-text)]">Fotoğraf Havuzu — Misafirlere Görünürlük</p>
                 <p className="mt-1 text-xs text-[color:var(--color-text)]/50">
-                  Durum: {data.revealed ? "Herkese açık" : "Kapalı (otomatik saat: " + new Date(eventConfig.weddingEndAt).toLocaleString("tr-TR") + ")"}
+                  {data.revealed
+                    ? "Herkese açık: /gallery sayfasındaki tüm fotoğrafları artık misafirler de görebilir."
+                    : `Şu an sadece sen görebiliyorsun. Otomatik olarak ${new Date(eventConfig.weddingEndAt).toLocaleString("tr-TR")} tarihinde herkese açılacak, veya aşağıdaki butonla şimdi açabilirsin.`}
                 </p>
               </div>
               <button
@@ -129,7 +132,7 @@ export default function AdminDashboardPage() {
                 className="flex items-center gap-2 rounded-xl border border-[color:var(--color-primary)]/40 px-4 py-2 text-sm text-[color:var(--color-primary)] transition hover:bg-[color:var(--color-primary)]/10 disabled:opacity-50"
               >
                 {data.manualRevealOverride ? <ToggleRight size={18} /> : <ToggleLeft size={18} />}
-                {data.manualRevealOverride ? "Manuel açık" : "Manuel aç"}
+                {data.manualRevealOverride ? "Herkese açık (kapatmak için tıkla)" : "Şimdi herkese aç"}
               </button>
             </div>
 
@@ -141,6 +144,28 @@ export default function AdminDashboardPage() {
                 </>
               )}
             </div>
+
+            <section>
+              <h2 className="mb-3 font-display text-lg text-[color:var(--color-text)]">
+                Fotoğraf Havuzu — Sadece Sen Görüyorsun ({data.photoCount})
+              </h2>
+              {data.photos.length === 0 ? (
+                <p className="text-sm text-[color:var(--color-text)]/40">Henüz fotoğraf yüklenmedi.</p>
+              ) : (
+                <div className="columns-2 gap-3 sm:columns-4 [&>*]:mb-3">
+                  {data.photos.map((p) => (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      key={p.id}
+                      src={p.url}
+                      alt={p.uploader_name ?? "Anı fotoğrafı"}
+                      className="w-full rounded-xl border border-white/10"
+                      loading="lazy"
+                    />
+                  ))}
+                </div>
+              )}
+            </section>
 
             <section>
               <h2 className="mb-3 font-display text-lg text-[color:var(--color-text)]">

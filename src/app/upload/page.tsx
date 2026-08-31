@@ -9,12 +9,34 @@ import { eventConfig } from "@/lib/config";
 import FloatingBackground from "@/components/FloatingBackground";
 
 const BUCKET = "wedding-photos";
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+
+function uploadFileWithProgress(path: string, file: File, onProgress: (pct: number) => void) {
+  return new Promise<void>((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", `${SUPABASE_URL}/storage/v1/object/${BUCKET}/${path}`);
+    xhr.setRequestHeader("apikey", SUPABASE_ANON_KEY);
+    xhr.setRequestHeader("Authorization", `Bearer ${SUPABASE_ANON_KEY}`);
+    xhr.setRequestHeader("Content-Type", file.type || "image/jpeg");
+    xhr.upload.onprogress = (e) => {
+      if (e.lengthComputable) onProgress(e.loaded / e.total);
+    };
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) resolve();
+      else reject(new Error(xhr.responseText || `Yükleme hatası (${xhr.status})`));
+    };
+    xhr.onerror = () => reject(new Error("Ağ hatası, bağlantını kontrol et."));
+    xhr.send(file);
+  });
+}
 
 export default function UploadPage() {
   const inputRef = useRef<HTMLInputElement>(null);
   const [files, setFiles] = useState<File[]>([]);
   const [uploaderName, setUploaderName] = useState("");
   const [uploading, setUploading] = useState(false);
+  const [progress, setProgress] = useState(0);
   const [uploadedCount, setUploadedCount] = useState(0);
   const [error, setError] = useState<string | null>(null);
 
@@ -31,24 +53,23 @@ export default function UploadPage() {
     }
     setUploading(true);
     setError(null);
+    setProgress(0);
     let successCount = 0;
-
     let lastErrorMessage: string | null = null;
+
+    const totalBytes = files.reduce((sum, f) => sum + f.size, 0);
+    let uploadedBytesBase = 0;
 
     for (const file of files) {
       const ext = file.name.split(".").pop() || "jpg";
       const path = `${crypto.randomUUID()}.${ext}`;
 
       try {
-        const { error: uploadError } = await supabaseBrowser.storage.from(BUCKET).upload(path, file, {
-          contentType: file.type || "image/jpeg",
-          upsert: false,
+        await uploadFileWithProgress(path, file, (fraction) => {
+          setProgress((uploadedBytesBase + fraction * file.size) / totalBytes);
         });
-
-        if (uploadError) {
-          lastErrorMessage = uploadError.message;
-          continue;
-        }
+        uploadedBytesBase += file.size;
+        setProgress(uploadedBytesBase / totalBytes);
 
         const { error: insertError } = await supabaseBrowser.from("photos").insert({
           storage_path: path,
@@ -63,6 +84,7 @@ export default function UploadPage() {
         successCount++;
       } catch (e) {
         lastErrorMessage = e instanceof Error ? e.message : String(e);
+        uploadedBytesBase += file.size;
       }
     }
 
@@ -127,6 +149,21 @@ export default function UploadPage() {
           />
 
           {error && <p className="mt-3 text-xs text-red-400">{error}</p>}
+
+          {uploading && (
+            <div className="mt-4">
+              <div className="h-2 w-full overflow-hidden rounded-full bg-white/10">
+                <motion.div
+                  className="h-full rounded-full bg-[linear-gradient(120deg,var(--color-primary),var(--color-primary-dark))]"
+                  animate={{ width: `${Math.round(progress * 100)}%` }}
+                  transition={{ ease: "linear", duration: 0.15 }}
+                />
+              </div>
+              <p className="mt-1.5 text-xs text-[color:var(--color-text)]/50">
+                {Math.round(progress * 100)}%
+              </p>
+            </div>
+          )}
 
           <button
             onClick={handleUpload}

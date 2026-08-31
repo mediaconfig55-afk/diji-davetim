@@ -62,7 +62,7 @@ export const eventConfig = {
   ] as IbanCard[],
 
   // Sitenin canlı adresi — QR kodları ve WhatsApp paylaşım linki bunun üstüne kurulur
-  siteUrl: "https://ebru-murat.example.com",
+  siteUrl: "https://elif-kaan-davetiye.vercel.app",
 
   theme: {
     primary: "#b98b56", // altın/bronz vurgu

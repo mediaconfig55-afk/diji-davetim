@@ -33,23 +33,37 @@ export default function UploadPage() {
     setError(null);
     let successCount = 0;
 
+    let lastErrorMessage: string | null = null;
+
     for (const file of files) {
       const ext = file.name.split(".").pop() || "jpg";
       const path = `${crypto.randomUUID()}.${ext}`;
 
-      const { error: uploadError } = await supabaseBrowser.storage.from(BUCKET).upload(path, file, {
-        contentType: file.type,
-        upsert: false,
-      });
+      try {
+        const { error: uploadError } = await supabaseBrowser.storage.from(BUCKET).upload(path, file, {
+          contentType: file.type || "image/jpeg",
+          upsert: false,
+        });
 
-      if (uploadError) continue;
+        if (uploadError) {
+          lastErrorMessage = uploadError.message;
+          continue;
+        }
 
-      const { error: insertError } = await supabaseBrowser.from("photos").insert({
-        storage_path: path,
-        uploader_name: uploaderName.trim() || null,
-      });
+        const { error: insertError } = await supabaseBrowser.from("photos").insert({
+          storage_path: path,
+          uploader_name: uploaderName.trim() || null,
+        });
 
-      if (!insertError) successCount++;
+        if (insertError) {
+          lastErrorMessage = insertError.message;
+          continue;
+        }
+
+        successCount++;
+      } catch (e) {
+        lastErrorMessage = e instanceof Error ? e.message : String(e);
+      }
     }
 
     setUploading(false);
@@ -58,7 +72,11 @@ export default function UploadPage() {
     if (inputRef.current) inputRef.current.value = "";
 
     if (successCount === 0) {
-      setError("Fotoğraflar yüklenemedi, lütfen tekrar deneyin.");
+      setError(
+        lastErrorMessage
+          ? `Yüklenemedi: ${lastErrorMessage}`
+          : "Fotoğraflar yüklenemedi, lütfen tekrar deneyin."
+      );
     }
   }
 

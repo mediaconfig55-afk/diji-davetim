@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import QRCode from "qrcode";
-import { Download, LogOut, RefreshCw, ToggleLeft, ToggleRight } from "lucide-react";
+import { AlertTriangle, Download, LogOut, RefreshCw, ToggleLeft, ToggleRight } from "lucide-react";
 import { eventConfig } from "@/lib/config";
 import type { RsvpRecord, GuestbookRecord, PhotoRecord } from "@/lib/types";
 import FloatingBackground from "@/components/FloatingBackground";
@@ -29,6 +29,10 @@ export default function AdminDashboardPage() {
   const [loading, setLoading] = useState(true);
   const [toggling, setToggling] = useState(false);
   const [qrCodes, setQrCodes] = useState<{ invite: string; upload: string } | null>(null);
+  const [resetOpen, setResetOpen] = useState(false);
+  const [resetConfirmText, setResetConfirmText] = useState("");
+  const [resetting, setResetting] = useState(false);
+  const [resetMessage, setResetMessage] = useState<string | null>(null);
 
   async function loadData() {
     setLoading(true);
@@ -62,6 +66,24 @@ export default function AdminDashboardPage() {
   async function handleLogout() {
     await fetch("/api/admin/logout", { method: "POST" });
     router.push("/admin");
+  }
+
+  async function handleReset() {
+    if (resetConfirmText !== "SIFIRLA") return;
+    setResetting(true);
+    setResetMessage(null);
+    const res = await fetch("/api/admin/reset", { method: "POST" });
+    const body = await res.json().catch(() => ({}));
+    setResetting(false);
+
+    if (res.ok) {
+      setResetMessage(`Temizlendi: ${body.deletedPhotos ?? 0} fotoğraf, tüm RSVP ve anı kayıtları silindi.`);
+      setResetOpen(false);
+      setResetConfirmText("");
+      loadData();
+    } else {
+      setResetMessage(`Hata: ${body.error ?? "bilinmeyen bir sorun oluştu."}`);
+    }
   }
 
   const rsvpCounts = data?.rsvps.reduce(
@@ -218,6 +240,70 @@ export default function AdminDashboardPage() {
                 {data.guestbook.length === 0 && (
                   <p className="text-sm text-[color:var(--color-text)]/40">Henüz anı yok.</p>
                 )}
+              </div>
+            </section>
+
+            <section className="rounded-2xl border border-red-500/25 bg-red-500/5 px-6 py-5">
+              <div className="flex items-start gap-3">
+                <AlertTriangle className="mt-0.5 shrink-0 text-red-400" size={18} />
+                <div className="flex-1">
+                  <h2 className="font-display text-lg text-[color:var(--color-text)]">
+                    Yeni Etkinliğe Hazırlan
+                  </h2>
+                  <p className="mt-1 text-xs text-[color:var(--color-text)]/55">
+                    Bu düğün bitip yeni bir etkinlik (başka bir düğün/kına/sünnet) için bu siteyi
+                    yeniden kullanacaksan: önce burada <strong>Tüm Verileri Sıfırla</strong>'ya bas
+                    (tüm RSVP'ler, anı defteri yazıları ve fotoğraflar kalıcı olarak silinir),
+                    sonra <code className="rounded bg-white/10 px-1">src/lib/config.ts</code>{" "}
+                    dosyasındaki isim/tarih/program/IBAN bilgilerini güncelleyip GitHub&apos;a push
+                    et — site otomatik olarak yeni bilgilerle yayınlanır.
+                  </p>
+
+                  {!resetOpen && (
+                    <button
+                      onClick={() => setResetOpen(true)}
+                      className="mt-4 rounded-xl border border-red-400/40 px-4 py-2 text-sm text-red-300 transition hover:bg-red-500/10"
+                    >
+                      Tüm Verileri Sıfırla
+                    </button>
+                  )}
+
+                  {resetOpen && (
+                    <div className="mt-4 space-y-3">
+                      <p className="text-xs text-[color:var(--color-text)]/70">
+                        Bu işlem geri alınamaz. Onaylamak için kutuya <strong>SIFIRLA</strong> yaz.
+                      </p>
+                      <input
+                        value={resetConfirmText}
+                        onChange={(e) => setResetConfirmText(e.target.value)}
+                        placeholder="SIFIRLA"
+                        className="w-full max-w-xs rounded-xl border border-red-400/30 bg-white/5 px-4 py-2.5 text-sm outline-none placeholder:text-[color:var(--color-text)]/30 focus:border-red-400"
+                      />
+                      <div className="flex gap-2">
+                        <button
+                          onClick={handleReset}
+                          disabled={resetConfirmText !== "SIFIRLA" || resetting}
+                          className="rounded-xl bg-red-500/80 px-4 py-2 text-sm font-medium text-white transition hover:bg-red-500 disabled:cursor-not-allowed disabled:opacity-40"
+                        >
+                          {resetting ? "Siliniyor…" : "Onayla ve Sil"}
+                        </button>
+                        <button
+                          onClick={() => {
+                            setResetOpen(false);
+                            setResetConfirmText("");
+                          }}
+                          className="rounded-xl border border-white/15 px-4 py-2 text-sm text-[color:var(--color-text)]/70"
+                        >
+                          Vazgeç
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {resetMessage && (
+                    <p className="mt-3 text-xs text-[color:var(--color-text)]/70">{resetMessage}</p>
+                  )}
+                </div>
               </div>
             </section>
           </div>

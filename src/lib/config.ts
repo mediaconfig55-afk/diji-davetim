@@ -24,13 +24,13 @@ export const eventConfig = {
 
   couple: {
     // Düğün/kına için iki isim, sünnet için sadece "person" alanını doldurman yeterli
-    bride: "Ebru",
-    groom: "Murat",
+    bride: "Elif",
+    groom: "Kaan",
   },
 
   parents: {
-    bride: { father: "Ahmet Yılmaz", mother: "Fatma Yılmaz" },
-    groom: { father: "Mehmet Kaya", mother: "Ayşe Kaya" },
+    bride: { father: "Hasan Demir", mother: "Nurcan Demir" },
+    groom: { father: "İbrahim Aydın", mother: "Sevil Aydın" },
   },
 
   welcomeTitle: "Düğünümüze Hoş Geldiniz",
@@ -38,14 +38,14 @@ export const eventConfig = {
     "Hayatımızın en özel gününde sevdiklerimizle birlikte olmaktan mutluluk duyarız. Sizi de aramızda görmekten onur duyarız.",
 
   // ISO 8601, saat dilimiyle birlikte (Türkiye: +03:00)
-  date: "2026-09-15T20:00:00+03:00",
+  date: "2026-10-24T20:00:00+03:00",
   // Etkinliğin bittiği saat — fotoğraf havuzu bu saatten sonra otomatik herkese açılır
-  weddingEndAt: "2026-09-16T02:00:00+03:00",
+  weddingEndAt: "2026-10-25T02:00:00+03:00",
 
   venue: {
-    name: "Zümrüt Davet Salonu",
-    address: "Örnek Mahallesi, Çiçek Caddesi No:12, İstanbul",
-    mapUrl: "https://maps.google.com/?q=Zümrüt+Davet+Salonu",
+    name: "İnci Davet Salonu",
+    address: "Bağlarbaşı Mahallesi, Lale Sokak No:7, İstanbul",
+    mapUrl: "https://maps.google.com/?q=İnci+Davet+Salonu",
   },
 
   program: [
@@ -57,8 +57,8 @@ export const eventConfig = {
   ] as ProgramItem[],
 
   ibans: [
-    { label: "Gelin - Ebru Yılmaz", bankName: "Örnek Bank", iban: "TR00 0000 0000 0000 0000 0000 00" },
-    { label: "Damat - Murat Kaya", bankName: "Örnek Bank", iban: "TR11 1111 1111 1111 1111 1111 11" },
+    { label: "Gelin - Elif Demir", bankName: "Örnek Bank", iban: "TR00 0000 0000 0000 0000 0000 00" },
+    { label: "Damat - Kaan Aydın", bankName: "Örnek Bank", iban: "TR11 1111 1111 1111 1111 1111 11" },
   ] as IbanCard[],
 
   // Sitenin canlı adresi — QR kodları ve WhatsApp paylaşım linki bunun üstüne kurulur

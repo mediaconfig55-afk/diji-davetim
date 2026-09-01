@@ -13,7 +13,7 @@ export interface ProgramItem {
 }
 
 export interface IbanCard {
-  label: string; // "Gelin - Ebru Yılmaz"
+  label: string; // "Gelin - Sevgi Demir"
   bankName: string;
   iban: string; // "TR00 0000 0000 0000 0000 0000 00"
 }
@@ -29,8 +29,8 @@ export const eventConfig = {
   },
 
   parents: {
-    bride: { father: "Hasan Demir", mother: "Nurcan Demir" },
-    groom: { father: "İbrahim Aydın", mother: "Sevil Aydın" },
+    bride: { father: "Hüseyin Demir", mother: "Maviş Demir" },
+    groom: { father: "Güner Canbolat", mother: "Gültekin Canbolat" },
   },
 
   welcomeTitle: "Düğünümüze Hoş Geldiniz",
@@ -38,14 +38,14 @@ export const eventConfig = {
     "Hayatımızın en özel gününde sevdiklerimizle birlikte olmaktan mutluluk duyarız. Sizi de aramızda görmekten onur duyarız.",
 
   // ISO 8601, saat dilimiyle birlikte (Türkiye: +03:00)
-  date: "2026-10-24T20:00:00+03:00",
+  date: "2026-09-06T20:00:00+03:00",
   // Etkinliğin bittiği saat — fotoğraf havuzu bu saatten sonra otomatik herkese açılır
-  weddingEndAt: "2026-10-25T02:00:00+03:00",
+  weddingEndAt: "2026-09-06T02:00:00+03:00",
 
   venue: {
-    name: "İnci Davet Salonu",
-    address: "Bağlarbaşı Mahallesi, Lale Sokak No:7, İstanbul",
-    mapUrl: "https://maps.google.com/?q=İnci+Davet+Salonu",
+    name: "Erbil Düğün Salonu",
+    address: "Yeşildere, 550. Sk. No:8, 55200 Atakum/Samsun",
+    mapUrl: "https://www.google.com/maps?um=1&ie=UTF-8&fb=1&gl=tr&sa=X&geocode=KSsdTWdseYhAMR3VOguv9Hz6&daddr=Ye%C5%9Fildere,+550.+Sk.+No:8,+55200+Atakum/Samsun",
   },
 
   program: [
@@ -57,12 +57,12 @@ export const eventConfig = {
   ] as ProgramItem[],
 
   ibans: [
-    { label: "Gelin - Elif Demir", bankName: "Örnek Bank", iban: "TR00 0000 0000 0000 0000 0000 00" },
-    { label: "Damat - Kaan Aydın", bankName: "Örnek Bank", iban: "TR11 1111 1111 1111 1111 1111 11" },
+    { label: "Gelin - Sevgi Demir", bankName: "Örnek Bank", iban: "TR00 0000 0000 0000 0000 0000 00" },
+    { label: "Damat - Yasin Metehan Canbolat", bankName: "Örnek Bank", iban: "TR11 1111 1111 1111 1111 1111 11" },
   ] as IbanCard[],
 
   // Sitenin canlı adresi — QR kodları ve WhatsApp paylaşım linki bunun üstüne kurulur
-  siteUrl: "https://elif-kaan-davetiye.vercel.app",
+  siteUrl: "https://sevgi-yasin-davetiye.vercel.app",
 
   theme: {
     primary: "#b98b56", // altın/bronz vurgu

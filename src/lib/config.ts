@@ -24,8 +24,8 @@ export const eventConfig = {
 
   couple: {
     // Düğün/kına için iki isim, sünnet için sadece "person" alanını doldurman yeterli
-    bride: "Elif",
-    groom: "Kaan",
+    bride: "Sevgi",
+    groom: "Yasin Metehan",
   },
 
   parents: {

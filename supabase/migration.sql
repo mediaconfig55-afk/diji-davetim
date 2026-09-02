@@ -81,6 +81,41 @@ on conflict (id) do nothing;
 alter table public.event_settings enable row level security;
 -- Anon için hiçbir policy yok: sadece admin (service_role) okuyup yazabilir.
 
+-- Etkinlik temel bilgileri (gelin/damat, aile, tarih, mekan, program vb.)
+-- Admin panelden düzenlenebilir; frontend bunu config.ts defaults yerine kullanır.
+create table if not exists public.event_config (
+  id int primary key default 1,
+  event_type text not null default 'wedding' check (event_type in ('wedding', 'kina', 'sunnet')),
+  bride_name text,
+  groom_name text,
+  bride_father text,
+  bride_mother text,
+  groom_father text,
+  groom_mother text,
+  event_date timestamptz,
+  event_end_at timestamptz,
+  venue_name text,
+  venue_address text,
+  welcome_title text,
+  welcome_message text,
+  program jsonb, -- [{time, title, description}, ...]
+  ibans jsonb, -- [{label, bankName, iban}, ...]
+  theme_primary text,
+  theme_primary_dark text,
+  theme_background text,
+  theme_surface text,
+  theme_text_light text,
+  updated_at timestamptz not null default now(),
+  constraint single_row check (id = 1)
+);
+
+insert into public.event_config (id)
+values (1)
+on conflict (id) do nothing;
+
+alter table public.event_config enable row level security;
+-- Anon için hiçbir policy yok: sadece admin (service_role) okuyup yazabilir.
+
 -- ---------------------------------------------------------------------
 -- Storage: fotoğraf yükleme bucket'ı
 -- ---------------------------------------------------------------------

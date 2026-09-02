@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import QRCode from "qrcode";
-import { AlertTriangle, Download, LogOut, RefreshCw, ToggleLeft, ToggleRight } from "lucide-react";
+import { AlertTriangle, Download, Edit2, LogOut, RefreshCw, ToggleLeft, ToggleRight, X } from "lucide-react";
 import { eventConfig } from "@/lib/config";
 import type { RsvpRecord, GuestbookRecord, PhotoRecord } from "@/lib/types";
 import FloatingBackground from "@/components/FloatingBackground";
@@ -33,6 +33,21 @@ export default function AdminDashboardPage() {
   const [resetConfirmText, setResetConfirmText] = useState("");
   const [resetting, setResetting] = useState(false);
   const [resetMessage, setResetMessage] = useState<string | null>(null);
+  const [editConfigOpen, setEditConfigOpen] = useState(false);
+  const [configData, setConfigData] = useState({
+    bride_name: "",
+    groom_name: "",
+    bride_father: "",
+    bride_mother: "",
+    groom_father: "",
+    groom_mother: "",
+    event_date: "",
+    event_end_at: "",
+    venue_name: "",
+    venue_address: "",
+  });
+  const [editLoading, setEditLoading] = useState(false);
+  const [editMessage, setEditMessage] = useState<string | null>(null);
 
   async function loadData() {
     setLoading(true);
@@ -41,8 +56,47 @@ export default function AdminDashboardPage() {
     setLoading(false);
   }
 
+  async function loadConfigData() {
+    const res = await fetch("/api/admin/event-config");
+    if (res.ok) {
+      const cfg = await res.json();
+      setConfigData({
+        bride_name: cfg.bride_name || "",
+        groom_name: cfg.groom_name || "",
+        bride_father: cfg.bride_father || "",
+        bride_mother: cfg.bride_mother || "",
+        groom_father: cfg.groom_father || "",
+        groom_mother: cfg.groom_mother || "",
+        event_date: cfg.event_date ? cfg.event_date.slice(0, 16) : "",
+        event_end_at: cfg.event_end_at ? cfg.event_end_at.slice(0, 16) : "",
+        venue_name: cfg.venue_name || "",
+        venue_address: cfg.venue_address || "",
+      });
+    }
+  }
+
+  async function handleSaveConfig() {
+    setEditLoading(true);
+    setEditMessage(null);
+    const res = await fetch("/api/admin/event-config", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(configData),
+    });
+    setEditLoading(false);
+
+    if (res.ok) {
+      setEditMessage("Etkinlik bilgileri kaydedildi. Sayfa yenilenirse yeni bilgiler görünür.");
+      setTimeout(() => setEditConfigOpen(false), 2000);
+    } else {
+      const err = await res.json();
+      setEditMessage(`Hata: ${err.error}`);
+    }
+  }
+
   useEffect(() => {
     loadData();
+    loadConfigData();
     const base = eventConfig.siteUrl.replace(/\/$/, "");
     Promise.all([
       QRCode.toDataURL(base, { width: 480, margin: 1 }),
@@ -138,6 +192,133 @@ export default function AdminDashboardPage() {
                 </div>
               ))}
             </div>
+
+            <section className="rounded-2xl border border-[color:var(--color-primary)]/25 bg-[color:var(--color-primary)]/5 px-6 py-5">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="font-display text-lg text-[color:var(--color-text)]">Etkinlik Bilgilerini Düzenle</h2>
+                  <p className="mt-1 text-xs text-[color:var(--color-text)]/55">
+                    Gelin/damat isimleri, aile bilgileri, tarih ve mekan
+                  </p>
+                </div>
+                {!editConfigOpen && (
+                  <button
+                    onClick={() => {
+                      setEditConfigOpen(true);
+                      loadConfigData();
+                    }}
+                    className="flex items-center gap-2 rounded-xl border border-[color:var(--color-primary)]/40 px-4 py-2 text-sm text-[color:var(--color-primary)] hover:bg-[color:var(--color-primary)]/10"
+                  >
+                    <Edit2 size={16} /> Düzenle
+                  </button>
+                )}
+              </div>
+
+              {editConfigOpen && (
+                <div className="mt-6 space-y-4 rounded-xl bg-white/5 p-5">
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <input
+                      type="text"
+                      value={configData.bride_name}
+                      onChange={(e) => setConfigData({ ...configData, bride_name: e.target.value })}
+                      placeholder="Gelin Adı"
+                      className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm outline-none placeholder:text-[color:var(--color-text)]/30 focus:border-[color:var(--color-primary)]"
+                    />
+                    <input
+                      type="text"
+                      value={configData.groom_name}
+                      onChange={(e) => setConfigData({ ...configData, groom_name: e.target.value })}
+                      placeholder="Damat Adı"
+                      className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm outline-none placeholder:text-[color:var(--color-text)]/30 focus:border-[color:var(--color-primary)]"
+                    />
+                    <input
+                      type="text"
+                      value={configData.bride_father}
+                      onChange={(e) => setConfigData({ ...configData, bride_father: e.target.value })}
+                      placeholder="Gelin Babası"
+                      className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm outline-none placeholder:text-[color:var(--color-text)]/30 focus:border-[color:var(--color-primary)]"
+                    />
+                    <input
+                      type="text"
+                      value={configData.bride_mother}
+                      onChange={(e) => setConfigData({ ...configData, bride_mother: e.target.value })}
+                      placeholder="Gelin Annesi"
+                      className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm outline-none placeholder:text-[color:var(--color-text)]/30 focus:border-[color:var(--color-primary)]"
+                    />
+                    <input
+                      type="text"
+                      value={configData.groom_father}
+                      onChange={(e) => setConfigData({ ...configData, groom_father: e.target.value })}
+                      placeholder="Damat Babası"
+                      className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm outline-none placeholder:text-[color:var(--color-text)]/30 focus:border-[color:var(--color-primary)]"
+                    />
+                    <input
+                      type="text"
+                      value={configData.groom_mother}
+                      onChange={(e) => setConfigData({ ...configData, groom_mother: e.target.value })}
+                      placeholder="Damat Annesi"
+                      className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm outline-none placeholder:text-[color:var(--color-text)]/30 focus:border-[color:var(--color-primary)]"
+                    />
+                  </div>
+
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div>
+                      <label className="block text-xs text-[color:var(--color-text)]/50 mb-1">Düğün Tarihi ve Saati</label>
+                      <input
+                        type="datetime-local"
+                        value={configData.event_date}
+                        onChange={(e) => setConfigData({ ...configData, event_date: e.target.value })}
+                        className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm outline-none focus:border-[color:var(--color-primary)]"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-[color:var(--color-text)]/50 mb-1">Düğün Bitişi Saati</label>
+                      <input
+                        type="datetime-local"
+                        value={configData.event_end_at}
+                        onChange={(e) => setConfigData({ ...configData, event_end_at: e.target.value })}
+                        className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm outline-none focus:border-[color:var(--color-primary)]"
+                      />
+                    </div>
+                  </div>
+
+                  <input
+                    type="text"
+                    value={configData.venue_name}
+                    onChange={(e) => setConfigData({ ...configData, venue_name: e.target.value })}
+                    placeholder="Mekan Adı (ör. Zümrüt Davet Salonu)"
+                    className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm outline-none placeholder:text-[color:var(--color-text)]/30 focus:border-[color:var(--color-primary)]"
+                  />
+                  <input
+                    type="text"
+                    value={configData.venue_address}
+                    onChange={(e) => setConfigData({ ...configData, venue_address: e.target.value })}
+                    placeholder="Mekan Adresi"
+                    className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm outline-none placeholder:text-[color:var(--color-text)]/30 focus:border-[color:var(--color-primary)]"
+                  />
+
+                  {editMessage && (
+                    <p className="text-xs text-[color:var(--color-text)]/70">{editMessage}</p>
+                  )}
+
+                  <div className="flex gap-2 pt-2">
+                    <button
+                      onClick={handleSaveConfig}
+                      disabled={editLoading}
+                      className="rounded-lg bg-[color:var(--color-primary)] px-4 py-2 text-sm font-medium text-[#1a1420] hover:opacity-90 disabled:opacity-50"
+                    >
+                      {editLoading ? "Kaydediliyor…" : "Kaydet"}
+                    </button>
+                    <button
+                      onClick={() => setEditConfigOpen(false)}
+                      className="rounded-lg border border-white/15 px-4 py-2 text-sm text-[color:var(--color-text)]/70"
+                    >
+                      Kapat
+                    </button>
+                  </div>
+                </div>
+              )}
+            </section>
 
             <div className="glass-card flex flex-wrap items-center justify-between gap-4 rounded-2xl px-6 py-5">
               <div>

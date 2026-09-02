@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import QRCode from "qrcode";
-import { AlertTriangle, Download, Edit2, LogOut, RefreshCw, ToggleLeft, ToggleRight, X } from "lucide-react";
+import { AlertTriangle, Download, Edit2, LogOut, RefreshCw, ToggleLeft, ToggleRight } from "lucide-react";
 import { eventConfig } from "@/lib/config";
 import type { RsvpRecord, GuestbookRecord, PhotoRecord } from "@/lib/types";
 import FloatingBackground from "@/components/FloatingBackground";
@@ -57,7 +57,10 @@ export default function AdminDashboardPage() {
   }
 
   async function loadConfigData() {
-    const res = await fetch("/api/admin/event-config");
+    // /api/config, DB'de henüz doldurulmamış alanlar için config.ts
+    // varsayılanlarına düşer — böylece form her zaman sitede o an
+    // görünen gerçek değerleri gösterir, boş alanlarla admini yanıltmaz.
+    const res = await fetch("/api/config");
     if (res.ok) {
       const cfg = await res.json();
       setConfigData({
@@ -433,8 +436,8 @@ export default function AdminDashboardPage() {
                   </h2>
                   <p className="mt-1 text-xs text-[color:var(--color-text)]/55">
                     Bu düğün bitip yeni bir etkinlik (başka bir düğün/kına/sünnet) için bu siteyi
-                    yeniden kullanacaksan: önce burada <strong>Tüm Verileri Sıfırla</strong>'ya bas
-                    (tüm RSVP'ler, anı defteri yazıları ve fotoğraflar kalıcı olarak silinir),
+                    yeniden kullanacaksan: önce burada <strong>Tüm Verileri Sıfırla</strong>&apos;ya bas
+                    (tüm RSVP&apos;ler, anı defteri yazıları ve fotoğraflar kalıcı olarak silinir),
                     sonra <code className="rounded bg-white/10 px-1">src/lib/config.ts</code>{" "}
                     dosyasındaki isim/tarih/program/IBAN bilgilerini güncelleyip GitHub&apos;a push
                     et — site otomatik olarak yeni bilgilerle yayınlanır.

@@ -62,7 +62,7 @@ export const eventConfig = {
   ] as IbanCard[],
 
   // Sitenin canlı adresi — QR kodları ve WhatsApp paylaşım linki bunun üstüne kurulur
-  siteUrl: "https://sevgi-yasin-davetiye.vercel.app",
+  siteUrl: "https://diji-davetim.vercel.app",
 
   theme: {
     primary: "#b98b56", // altın/bronz vurgu

@@ -1,3 +1,4 @@
+import { getEventConfig } from "@/lib/event-config.server";
 import Preloader from "@/components/Preloader";
 import FloatingBackground from "@/components/FloatingBackground";
 import Hero from "@/components/Hero";
@@ -10,21 +11,27 @@ import IbanSection from "@/components/IbanSection";
 import PhotoSection from "@/components/PhotoSection";
 import Footer from "@/components/Footer";
 
-export default function Home() {
+// Admin panelinden yapılan düzenlemeler anında yansısın diye her istekte
+// yeniden çözümlenir; davetiye zaten hafif bir sayfa.
+export const dynamic = "force-dynamic";
+
+export default async function Home() {
+  const config = await getEventConfig();
+
   return (
     <>
-      <Preloader />
+      <Preloader config={config} />
       <FloatingBackground />
       <main className="relative">
-        <Hero />
-        <ParentsSection />
-        <ProgramSection />
-        <CountdownSection />
+        <Hero config={config} />
+        <ParentsSection config={config} />
+        <ProgramSection config={config} />
+        <CountdownSection config={config} />
         <RsvpSection />
         <GuestbookSection />
-        <IbanSection />
-        <PhotoSection />
-        <Footer />
+        <IbanSection config={config} />
+        <PhotoSection config={config} />
+        <Footer config={config} />
       </main>
     </>
   );

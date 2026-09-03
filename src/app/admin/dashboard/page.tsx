@@ -13,6 +13,7 @@ interface DashboardData {
   guestbook: GuestbookRecord[];
   manualRevealOverride: boolean;
   revealed: boolean;
+  revealAt: string;
   photoCount: number;
   photos: PhotoRecord[];
 }
@@ -22,6 +23,37 @@ const statusLabels: Record<string, string> = {
   not_attending: "Katılmıyor",
   undecided: "Belirsiz",
 };
+
+// Etkinlik saatleri her zaman Türkiye saatiyle girilir ve gösterilir.
+// Türkiye 2016'dan beri yaz saati uygulamadığı için ofset yıl boyu sabittir.
+const EVENT_TIMEZONE = "Europe/Istanbul";
+const EVENT_UTC_OFFSET = "+03:00";
+
+// Veritabanından gelen ISO damgasını <input type="datetime-local"> için
+// Türkiye saatine çevirir. "sv-SE" yerel biçimi "2026-09-06 20:00" verir.
+function isoToDateTimeLocal(iso: string | null | undefined): string {
+  if (!iso) return "";
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return "";
+  return new Intl.DateTimeFormat("sv-SE", {
+    timeZone: EVENT_TIMEZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  })
+    .format(date)
+    .replace(" ", "T");
+}
+
+// Formdaki saat dilimsiz değeri ("2026-09-06T20:00") Türkiye saati olarak
+// etiketler. Bu olmadan Postgres değeri UTC sayıyor ve etkinlik 3 saat kayıyordu.
+function dateTimeLocalToIso(value: string): string | null {
+  if (!value) return null;
+  return `${value}:00${EVENT_UTC_OFFSET}`;
+}
 
 export default function AdminDashboardPage() {
   const router = useRouter();
@@ -70,8 +102,8 @@ export default function AdminDashboardPage() {
         bride_mother: cfg.bride_mother || "",
         groom_father: cfg.groom_father || "",
         groom_mother: cfg.groom_mother || "",
-        event_date: cfg.event_date ? cfg.event_date.slice(0, 16) : "",
-        event_end_at: cfg.event_end_at ? cfg.event_end_at.slice(0, 16) : "",
+        event_date: isoToDateTimeLocal(cfg.event_date),
+        event_end_at: isoToDateTimeLocal(cfg.event_end_at),
         venue_name: cfg.venue_name || "",
         venue_address: cfg.venue_address || "",
       });
@@ -79,21 +111,36 @@ export default function AdminDashboardPage() {
   }
 
   async function handleSaveConfig() {
+    const startIso = dateTimeLocalToIso(configData.event_date);
+    const endIso = dateTimeLocalToIso(configData.event_end_at);
+
+    // Gece yarısını aşan düğünlerde bitiş tarihini bir sonraki güne yazmayı
+    // unutmak, fotoğraf havuzunun daha etkinlik başlamadan herkese açılmasına
+    // yol açıyor. Kaydetmeden önce burada engelle.
+    if (startIso && endIso && new Date(endIso) <= new Date(startIso)) {
+      setEditMessage(
+        "Hata: Bitiş saati başlangıçtan sonra olmalı. Gece yarısını geçen etkinliklerde bitiş tarihi bir sonraki gün olmalıdır."
+      );
+      return;
+    }
+
     setEditLoading(true);
     setEditMessage(null);
     const res = await fetch("/api/admin/event-config", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(configData),
+      body: JSON.stringify({ ...configData, event_date: startIso, event_end_at: endIso }),
     });
     setEditLoading(false);
 
     if (res.ok) {
-      setEditMessage("Etkinlik bilgileri kaydedildi. Sayfa yenilenirse yeni bilgiler görünür.");
+      setEditMessage("Etkinlik bilgileri kaydedildi. Davetiye sayfası artık bu bilgileri gösteriyor.");
+      loadData();
+      loadConfigData();
       setTimeout(() => setEditConfigOpen(false), 2000);
     } else {
-      const err = await res.json();
-      setEditMessage(`Hata: ${err.error}`);
+      const err = await res.json().catch(() => ({}));
+      setEditMessage(`Hata: ${err.error ?? "kaydedilemedi."}`);
     }
   }
 
@@ -329,7 +376,7 @@ export default function AdminDashboardPage() {
                 <p className="mt-1 text-xs text-[color:var(--color-text)]/50">
                   {data.revealed
                     ? "Herkese açık: /gallery sayfasındaki tüm fotoğrafları artık misafirler de görebilir."
-                    : `Şu an sadece sen görebiliyorsun. Otomatik olarak ${new Date(eventConfig.weddingEndAt).toLocaleString("tr-TR")} tarihinde herkese açılacak, veya aşağıdaki butonla şimdi açabilirsin.`}
+                    : `Şu an sadece sen görebiliyorsun. Otomatik olarak ${new Date(data.revealAt).toLocaleString("tr-TR", { timeZone: EVENT_TIMEZONE })} tarihinde herkese açılacak, veya aşağıdaki butonla şimdi açabilirsin.`}
                 </p>
               </div>
               <button
@@ -438,9 +485,11 @@ export default function AdminDashboardPage() {
                     Bu düğün bitip yeni bir etkinlik (başka bir düğün/kına/sünnet) için bu siteyi
                     yeniden kullanacaksan: önce burada <strong>Tüm Verileri Sıfırla</strong>&apos;ya bas
                     (tüm RSVP&apos;ler, anı defteri yazıları ve fotoğraflar kalıcı olarak silinir),
-                    sonra <code className="rounded bg-white/10 px-1">src/lib/config.ts</code>{" "}
-                    dosyasındaki isim/tarih/program/IBAN bilgilerini güncelleyip GitHub&apos;a push
-                    et — site otomatik olarak yeni bilgilerle yayınlanır.
+                    sonra yukarıdaki <strong>Etkinlik Bilgilerini Düzenle</strong> bölümünden
+                    isimleri, aile bilgilerini, tarihi ve mekanı güncelle — bunlar anında yayına
+                    girer. Program akışı ve IBAN bilgileri henüz panelden düzenlenemiyor; onlar için{" "}
+                    <code className="rounded bg-white/10 px-1">src/lib/config.ts</code> dosyasını
+                    güncelleyip GitHub&apos;a push etmen gerekir.
                   </p>
 
                   {!resetOpen && (

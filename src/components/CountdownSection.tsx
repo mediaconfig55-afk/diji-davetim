@@ -2,11 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { Hourglass } from "lucide-react";
-import { eventConfig } from "@/lib/config";
+import { defaultResolvedConfig, type ResolvedEventConfig } from "@/lib/event-config";
 import ScrollFade from "./ScrollFade";
 
-function getTimeLeft() {
-  const diff = new Date(eventConfig.date).getTime() - Date.now();
+function getTimeLeft(targetDate: string) {
+  const diff = new Date(targetDate).getTime() - Date.now();
   const clamped = Math.max(0, diff);
   return {
     days: Math.floor(clamped / (1000 * 60 * 60 * 24)),
@@ -17,14 +17,19 @@ function getTimeLeft() {
   };
 }
 
-export default function CountdownSection() {
+export default function CountdownSection({
+  config = defaultResolvedConfig,
+}: {
+  config?: ResolvedEventConfig;
+}) {
   const [time, setTime] = useState<ReturnType<typeof getTimeLeft> | null>(null);
+  const targetDate = config.date;
 
   useEffect(() => {
-    setTime(getTimeLeft());
-    const id = setInterval(() => setTime(getTimeLeft()), 1000);
+    setTime(getTimeLeft(targetDate));
+    const id = setInterval(() => setTime(getTimeLeft(targetDate)), 1000);
     return () => clearInterval(id);
-  }, []);
+  }, [targetDate]);
 
   const units = [
     { label: "Gün", value: time?.days },

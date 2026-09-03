@@ -1,16 +1,20 @@
 "use client";
 
 import { Heart } from "lucide-react";
-import { eventConfig } from "@/lib/config";
+import { defaultResolvedConfig, type ResolvedEventConfig } from "@/lib/event-config";
 import ScrollFade from "./ScrollFade";
 import TiltCard from "./TiltCard";
 
-export default function ParentsSection() {
-  const { parents, couple } = eventConfig;
+export default function ParentsSection({
+  config = defaultResolvedConfig,
+}: {
+  config?: ResolvedEventConfig;
+}) {
+  const { parents } = config;
 
   const cards = [
-    { title: `${couple.bride}'in Ailesi`, father: parents.bride.father, mother: parents.bride.mother },
-    { title: `${couple.groom}'in Ailesi`, father: parents.groom.father, mother: parents.groom.mother },
+    { title: `${config.bride}'in Ailesi`, father: parents.bride.father, mother: parents.bride.mother },
+    { title: `${config.groom}'in Ailesi`, father: parents.groom.father, mother: parents.groom.mother },
   ];
 
   return (

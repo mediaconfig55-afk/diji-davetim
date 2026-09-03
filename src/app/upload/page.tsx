@@ -1,16 +1,19 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { ArrowLeft, Camera, CheckCircle2, ImagePlus, Loader2 } from "lucide-react";
 import { supabaseBrowser } from "@/lib/supabase/client";
-import { eventConfig } from "@/lib/config";
+import { defaultResolvedConfig } from "@/lib/event-config";
 import FloatingBackground from "@/components/FloatingBackground";
 
 const BUCKET = "wedding-photos";
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+// Supabase Storage'ın varsayılan dosya sınırı 50 MB. Sınırı aşan dosyayı
+// yüklemeye kalkmak yerine misafire baştan anlaşılır bir mesaj göster.
+const MAX_FILE_BYTES = 50 * 1024 * 1024;
 
 function uploadFileWithProgress(path: string, file: File, onProgress: (pct: number) => void) {
   return new Promise<void>((resolve, reject) => {
@@ -39,9 +42,36 @@ export default function UploadPage() {
   const [progress, setProgress] = useState(0);
   const [uploadedCount, setUploadedCount] = useState(0);
   const [error, setError] = useState<string | null>(null);
+  const [names, setNames] = useState({
+    bride: defaultResolvedConfig.bride,
+    groom: defaultResolvedConfig.groom,
+  });
+
+  // İsimler admin panelinden değiştirilmiş olabilir; davetiye sayfasıyla
+  // aynı kaynaktan oku ki iki sayfa farklı isim göstermesin.
+  useEffect(() => {
+    fetch("/api/config")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((cfg) => {
+        if (cfg?.bride_name && cfg?.groom_name) {
+          setNames({ bride: cfg.bride_name, groom: cfg.groom_name });
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   function handleSelect(e: React.ChangeEvent<HTMLInputElement>) {
     const selected = Array.from(e.target.files ?? []);
+    const tooLarge = selected.filter((f) => f.size > MAX_FILE_BYTES);
+
+    if (tooLarge.length > 0) {
+      setFiles(selected.filter((f) => f.size <= MAX_FILE_BYTES));
+      setError(
+        `${tooLarge.length} fotoğraf 50 MB sınırını aştığı için atlandı. Diğerleri yüklenebilir.`
+      );
+      return;
+    }
+
     setFiles(selected);
     setError(null);
   }
@@ -61,7 +91,11 @@ export default function UploadPage() {
     let uploadedBytesBase = 0;
 
     for (const file of files) {
-      const ext = file.name.split(".").pop() || "jpg";
+      // Uzantısı olmayan dosyalarda split(".").pop() dosya adının tamamını
+      // döndürüyordu; uzantıyı yalnızca gerçekten varsa kullan.
+      const dotIndex = file.name.lastIndexOf(".");
+      const rawExt = dotIndex > 0 ? file.name.slice(dotIndex + 1) : "";
+      const ext = /^[a-zA-Z0-9]{1,8}$/.test(rawExt) ? rawExt.toLowerCase() : "jpg";
       const path = `${crypto.randomUUID()}.${ext}`;
 
       try {
@@ -119,7 +153,7 @@ export default function UploadPage() {
           <Camera className="mx-auto mb-4 text-[color:var(--color-primary)]" size={26} />
           <h1 className="font-display gold-text text-2xl">Anı Fotoğrafı Ekle</h1>
           <p className="mt-2 text-sm text-[color:var(--color-text)]/60">
-            {eventConfig.couple.bride} & {eventConfig.couple.groom} için çektiğiniz fotoğrafları
+            {names.bride} & {names.groom} için çektiğiniz fotoğrafları
             havuza ekleyin. Fotoğraflar gece bitene kadar sadece havuzda saklanır, kimse göremez.
           </p>
 

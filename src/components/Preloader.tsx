@@ -2,9 +2,9 @@
 
 import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useState } from "react";
-import { eventConfig } from "@/lib/config";
+import { defaultResolvedConfig, type ResolvedEventConfig } from "@/lib/event-config";
 
-export default function Preloader() {
+export default function Preloader({ config = defaultResolvedConfig }: { config?: ResolvedEventConfig }) {
   const [visible, setVisible] = useState(true);
 
   useEffect(() => {
@@ -19,7 +19,7 @@ export default function Preloader() {
     }
   }, [visible]);
 
-  const initials = `${eventConfig.couple.bride[0]}${eventConfig.couple.groom[0]}`;
+  const initials = `${config.bride.charAt(0)}${config.groom.charAt(0)}`;
 
   return (
     <AnimatePresence>

@@ -2,7 +2,8 @@
 
 import { motion, type Variants } from "framer-motion";
 import { ChevronDown } from "lucide-react";
-import { eventConfig, eventTypeLabels } from "@/lib/config";
+import { eventTypeLabels } from "@/lib/config";
+import { defaultResolvedConfig, type ResolvedEventConfig } from "@/lib/event-config";
 
 const container: Variants = {
   hidden: {},
@@ -16,13 +17,16 @@ const item: Variants = {
   show: { opacity: 1, y: 0, transition: { duration: 0.9, ease: [0.22, 1, 0.36, 1] as const } },
 };
 
-export default function Hero() {
-  const label = eventTypeLabels[eventConfig.eventType];
-  const eventDate = new Date(eventConfig.date);
+export default function Hero({ config = defaultResolvedConfig }: { config?: ResolvedEventConfig }) {
+  const label = eventTypeLabels[config.eventType];
+  const eventDate = new Date(config.date);
+  // Tarih her ziyaretçide etkinliğin kendi saat diliminde (Türkiye) aynı
+  // görünsün — yurt dışındaki misafirin tarayıcı saati kaydırmasın.
   const formattedDate = eventDate.toLocaleDateString("tr-TR", {
     day: "numeric",
     month: "long",
     year: "numeric",
+    timeZone: "Europe/Istanbul",
   });
 
   return (
@@ -32,18 +36,18 @@ export default function Hero() {
           variants={item}
           className="mb-6 text-xs uppercase tracking-[0.4em] text-[color:var(--color-text)]/55"
         >
-          {formattedDate} · {eventConfig.venue.name}
+          {formattedDate} · {config.venue.name}
         </motion.span>
 
         <motion.h1
           variants={item}
           className="font-display gold-text text-5xl leading-tight sm:text-7xl md:text-8xl"
         >
-          {eventConfig.couple.bride}
+          {config.bride}
           <span className="mx-3 inline-block text-3xl sm:text-5xl align-middle text-[color:var(--color-text)]/40">
             &
           </span>
-          {eventConfig.couple.groom}
+          {config.groom}
         </motion.h1>
 
         <motion.p variants={item} className="mt-6 max-w-xl text-base text-[color:var(--color-text)]/70 sm:text-lg">
@@ -51,7 +55,7 @@ export default function Hero() {
         </motion.p>
 
         <motion.p variants={item} className="mt-3 max-w-md text-sm text-[color:var(--color-text)]/50">
-          {eventConfig.welcomeMessage}
+          {config.welcomeMessage}
         </motion.p>
       </motion.div>
 

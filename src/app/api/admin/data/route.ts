@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { ADMIN_COOKIE_NAME, verifyAdminSessionToken } from "@/lib/admin-session";
 import { supabaseAdmin } from "@/lib/supabase/server";
 import { isRevealed } from "@/lib/reveal";
+import { getEventConfig } from "@/lib/event-config.server";
 
 const BUCKET = "wedding-photos";
 
@@ -13,7 +14,7 @@ export async function GET(request: NextRequest) {
 
   const admin = supabaseAdmin();
 
-  const [{ data: rsvps }, { data: guestbook }, { data: settings }, { data: photos, count: photoCount }] =
+  const [{ data: rsvps }, { data: guestbook }, { data: settings }, { data: photos, count: photoCount }, cfg] =
     await Promise.all([
       admin.from("rsvps").select("id, full_name, status, guest_count, note, created_at").order("created_at", { ascending: false }),
       admin.from("guestbook").select("id, full_name, message, created_at").order("created_at", { ascending: false }),
@@ -23,6 +24,7 @@ export async function GET(request: NextRequest) {
         .select("id, storage_path, uploader_name, created_at", { count: "exact" })
         .order("created_at", { ascending: false })
         .limit(60),
+      getEventConfig(),
     ]);
 
   const photosWithUrls = (photos ?? []).map((p) => ({
@@ -34,7 +36,10 @@ export async function GET(request: NextRequest) {
     rsvps: rsvps ?? [],
     guestbook: guestbook ?? [],
     manualRevealOverride: settings?.manual_reveal_override ?? false,
-    revealed: isRevealed(settings?.manual_reveal_override ?? false),
+    revealed: isRevealed(settings?.manual_reveal_override ?? false, cfg.weddingEndAt),
+    // Panelde "otomatik olarak şu tarihte açılacak" metni config.ts'i değil,
+    // gerçekten geçerli olan bitiş saatini göstersin.
+    revealAt: cfg.weddingEndAt,
     photoCount: photoCount ?? 0,
     photos: photosWithUrls,
   });

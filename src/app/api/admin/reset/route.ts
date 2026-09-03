@@ -16,16 +16,29 @@ export async function POST(request: NextRequest) {
 
   const admin = supabaseAdmin();
 
-  const { data: objects, error: listError } = await admin.storage.from(BUCKET).list("", { limit: 1000 });
-  if (listError) {
-    return NextResponse.json({ error: `Storage listelenemedi: ${listError.message}` }, { status: 500 });
-  }
+  // Storage list() tek çağrıda en fazla 1000 kayıt döner. Kalabalık bir
+  // düğünde havuz bunu rahat aşabildiği için sayfalayarak hepsini sil,
+  // yoksa fazlalık fotoğraflar bir sonraki etkinliğe taşınır.
+  const PAGE_SIZE = 1000;
+  let deletedPhotos = 0;
 
-  if (objects && objects.length > 0) {
+  for (;;) {
+    const { data: objects, error: listError } = await admin.storage
+      .from(BUCKET)
+      .list("", { limit: PAGE_SIZE, offset: 0 });
+
+    if (listError) {
+      return NextResponse.json({ error: `Storage listelenemedi: ${listError.message}` }, { status: 500 });
+    }
+    if (!objects || objects.length === 0) break;
+
     const { error: removeError } = await admin.storage.from(BUCKET).remove(objects.map((o) => o.name));
     if (removeError) {
       return NextResponse.json({ error: `Fotoğraflar silinemedi: ${removeError.message}` }, { status: 500 });
     }
+
+    deletedPhotos += objects.length;
+    if (objects.length < PAGE_SIZE) break;
   }
 
   const results = await Promise.all([
@@ -40,5 +53,5 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: failed.error.message }, { status: 500 });
   }
 
-  return NextResponse.json({ ok: true, deletedPhotos: objects?.length ?? 0 });
+  return NextResponse.json({ ok: true, deletedPhotos });
 }

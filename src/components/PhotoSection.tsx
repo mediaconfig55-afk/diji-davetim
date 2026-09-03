@@ -4,13 +4,17 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import QRCode from "qrcode";
 import { Camera, Images } from "lucide-react";
-import { eventConfig } from "@/lib/config";
+import { defaultResolvedConfig, type ResolvedEventConfig } from "@/lib/event-config";
 import ScrollFade from "./ScrollFade";
 import TiltCard from "./TiltCard";
 
-export default function PhotoSection() {
+export default function PhotoSection({
+  config = defaultResolvedConfig,
+}: {
+  config?: ResolvedEventConfig;
+}) {
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
-  const uploadUrl = `${eventConfig.siteUrl.replace(/\/$/, "")}/upload`;
+  const uploadUrl = `${config.siteUrl.replace(/\/$/, "")}/upload`;
 
   useEffect(() => {
     QRCode.toDataURL(uploadUrl, {

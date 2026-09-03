@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Playfair_Display, Inter } from "next/font/google";
 import { eventConfig, eventTypeLabels } from "@/lib/config";
+import { getEventConfig } from "@/lib/event-config.server";
 import "./globals.css";
 
 const playfair = Playfair_Display({
@@ -14,32 +15,21 @@ const inter = Inter({
   subsets: ["latin"],
 });
 
-const label = eventTypeLabels[eventConfig.eventType];
-
+// Etkinlik bilgileri doğrudan sunucu tarafında okunur. Eskiden burada
+// kendi canlı adresimize HTTP isteği atılıyordu; bu hem lokal geliştirmede
+// production verisini çekiyor hem de her istekte gereksiz bir tur atıyordu.
 export async function generateMetadata(): Promise<Metadata> {
-  try {
-    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || eventConfig.siteUrl;
-    const res = await fetch(`${siteUrl}/api/config`, { cache: "no-store" });
-    const cfg = res.ok ? await res.json() : null;
+  const cfg = await getEventConfig();
+  const label = eventTypeLabels[cfg.eventType];
 
-    const brideName = cfg?.bride_name || eventConfig.couple.bride;
-    const groomName = cfg?.groom_name || eventConfig.couple.groom;
-    const title = `${brideName} & ${groomName} — ${label.title}`;
-    const description = cfg?.welcome_message || eventConfig.welcomeMessage;
+  const title = `${cfg.bride} & ${cfg.groom} — ${label.title}`;
+  const description = cfg.welcomeMessage;
 
-    return {
-      title,
-      description,
-      openGraph: { title, description, type: "website" },
-    };
-  } catch {
-    const title = `${eventConfig.couple.bride} & ${eventConfig.couple.groom} — ${label.title}`;
-    return {
-      title,
-      description: eventConfig.welcomeMessage,
-      openGraph: { title, description: eventConfig.welcomeMessage, type: "website" },
-    };
-  }
+  return {
+    title,
+    description,
+    openGraph: { title, description, type: "website" },
+  };
 }
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

@@ -39,8 +39,10 @@ export const eventConfig = {
 
   // ISO 8601, saat dilimiyle birlikte (Türkiye: +03:00)
   date: "2026-09-06T20:00:00+03:00",
-  // Etkinliğin bittiği saat — fotoğraf havuzu bu saatten sonra otomatik herkese açılır
-  weddingEndAt: "2026-09-06T02:00:00+03:00",
+  // Etkinliğin bittiği saat — fotoğraf havuzu bu saatten sonra otomatik herkese açılır.
+  // DİKKAT: gece yarısını aşan etkinliklerde tarih BİR SONRAKİ gün olmalı; aksi halde
+  // bitiş anı başlangıçtan önceye düşer ve havuz daha düğün başlamadan herkese açılır.
+  weddingEndAt: "2026-09-07T02:00:00+03:00",
 
   venue: {
     name: "Erbil Düğün Salonu",

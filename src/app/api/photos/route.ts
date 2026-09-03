@@ -1,19 +1,19 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase/server";
 import { isRevealed } from "@/lib/reveal";
+import { getEventConfig } from "@/lib/event-config.server";
 
 const BUCKET = "wedding-photos";
 
 export async function GET() {
   const admin = supabaseAdmin();
 
-  const { data: settings } = await admin
-    .from("event_settings")
-    .select("manual_reveal_override")
-    .eq("id", 1)
-    .single();
+  const [{ data: settings }, cfg] = await Promise.all([
+    admin.from("event_settings").select("manual_reveal_override").eq("id", 1).single(),
+    getEventConfig(),
+  ]);
 
-  const revealed = isRevealed(settings?.manual_reveal_override ?? false);
+  const revealed = isRevealed(settings?.manual_reveal_override ?? false, cfg.weddingEndAt);
 
   if (!revealed) {
     return NextResponse.json({ revealed: false, photos: [] });

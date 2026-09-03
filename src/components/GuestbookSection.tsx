@@ -8,6 +8,11 @@ import type { GuestbookRecord } from "@/lib/types";
 import ScrollFade from "./ScrollFade";
 import TiltCard from "./TiltCard";
 
+// supabase/migration.sql'deki `char_length(message) between 1 and 1000`
+// kısıtıyla aynı olmalı — aksi halde insert sessizce reddedilir.
+const MESSAGE_MAX = 1000;
+const NAME_MAX = 80;
+
 export default function GuestbookSection() {
   const [entries, setEntries] = useState<GuestbookRecord[]>([]);
   const [loading, setLoading] = useState(true);
@@ -71,15 +76,24 @@ export default function GuestbookSection() {
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
               placeholder="Ad Soyad"
+              maxLength={NAME_MAX}
               className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm outline-none placeholder:text-[color:var(--color-text)]/35 focus:border-[color:var(--color-primary)]"
             />
-            <textarea
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-              placeholder="Anınızı yazın…"
-              rows={3}
-              className="w-full resize-none rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm outline-none placeholder:text-[color:var(--color-text)]/35 focus:border-[color:var(--color-primary)]"
-            />
+            <div>
+              <textarea
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                placeholder="Anınızı yazın…"
+                rows={3}
+                maxLength={MESSAGE_MAX}
+                className="w-full resize-none rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm outline-none placeholder:text-[color:var(--color-text)]/35 focus:border-[color:var(--color-primary)]"
+              />
+              {message.length > MESSAGE_MAX - 100 && (
+                <p className="mt-1 text-right text-[11px] text-[color:var(--color-text)]/45">
+                  {message.length} / {MESSAGE_MAX}
+                </p>
+              )}
+            </div>
             {error && <p className="text-xs text-red-400">{error}</p>}
             <button
               type="submit"

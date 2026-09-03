@@ -32,10 +32,12 @@ export default function RsvpSection() {
     setSubmitting(true);
     setError(null);
 
+    // Kişi sayısı yalnızca "Katılıyorum" için anlamlı. Misafir önce sayıyı
+    // artırıp sonra "Katılmıyorum"a geçerse eski sayı kaydedilmesin.
     const { error: insertError } = await supabaseBrowser.from("rsvps").insert({
       full_name: fullName.trim(),
       status,
-      guest_count: guestCount,
+      guest_count: status === "attending" ? guestCount : 1,
       note: note.trim() || null,
     });
 
@@ -97,6 +99,7 @@ export default function RsvpSection() {
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
                 placeholder="Ad Soyad"
+                maxLength={80}
                 className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm outline-none placeholder:text-[color:var(--color-text)]/35 focus:border-[color:var(--color-primary)]"
               />
 
@@ -128,6 +131,7 @@ export default function RsvpSection() {
                 onChange={(e) => setNote(e.target.value)}
                 placeholder="Not (opsiyonel)"
                 rows={2}
+                maxLength={500}
                 className="w-full resize-none rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm outline-none placeholder:text-[color:var(--color-text)]/35 focus:border-[color:var(--color-primary)]"
               />
 

@@ -1,10 +1,14 @@
 "use client";
 
 import { Clock } from "lucide-react";
-import { eventConfig } from "@/lib/config";
+import { defaultResolvedConfig, type ResolvedEventConfig } from "@/lib/event-config";
 import ScrollFade from "./ScrollFade";
 
-export default function ProgramSection() {
+export default function ProgramSection({
+  config = defaultResolvedConfig,
+}: {
+  config?: ResolvedEventConfig;
+}) {
   return (
     <section className="relative px-6 py-24 sm:py-32">
       <ScrollFade className="mx-auto mb-14 max-w-lg text-center">
@@ -15,7 +19,7 @@ export default function ProgramSection() {
       <div className="mx-auto max-w-xl">
         <div className="glass-card rounded-3xl px-6 py-8 sm:px-10">
           <ol className="relative border-l border-[color:var(--color-primary)]/30">
-            {eventConfig.program.map((p, i) => (
+            {config.program.map((p, i) => (
               <ScrollFade key={p.time + p.title} delay={i * 0.1} y={20}>
                 <li className="relative mb-8 pl-8 last:mb-0">
                   <span className="absolute -left-[7px] top-1.5 h-3 w-3 rounded-full bg-[color:var(--color-primary)]" />

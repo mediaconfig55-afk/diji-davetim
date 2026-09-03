@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { AlertCircle, Check, Copy, Gift } from "lucide-react";
-import { eventConfig } from "@/lib/config";
+import { defaultResolvedConfig, type ResolvedEventConfig } from "@/lib/event-config";
 import ScrollFade from "./ScrollFade";
 import TiltCard from "./TiltCard";
 
@@ -24,7 +24,11 @@ function legacyCopy(text: string): boolean {
   return ok;
 }
 
-export default function IbanSection() {
+export default function IbanSection({
+  config = defaultResolvedConfig,
+}: {
+  config?: ResolvedEventConfig;
+}) {
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
   const [failedIndex, setFailedIndex] = useState<number | null>(null);
 
@@ -63,7 +67,7 @@ export default function IbanSection() {
       </ScrollFade>
 
       <div className="mx-auto grid max-w-2xl gap-6 sm:grid-cols-2">
-        {eventConfig.ibans.map((card, i) => (
+        {config.ibans.map((card, i) => (
           <ScrollFade key={card.iban} delay={i * 0.15}>
             <TiltCard className="px-6 py-7">
               <p className="font-display text-lg text-[color:var(--color-text)]">{card.label}</p>
